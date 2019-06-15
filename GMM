@@ -1,0 +1,104 @@
+# --------------------------------------------------
+# ----- Load and Manipulate Data -------------------
+# --------------------------------------------------
+
+library(memisc)
+
+setwd("...")
+data <- as.data.frame(as.data.set(spss.system.file(file="...")))
+data.hlq <- subset(data, select=c(patient_code, hlq_hps, hlq_hsi, hlq_amh, hlq_ss, hlq_ca, hlq_ae, hlq_nhs, hlq_fhi, hlq_uhi))
+data.hlq.nomiss <- na.omit(data.hlq)
+for (i in 2:10) {print(sum(is.na(data.hlq.nomiss[i])))}
+
+# --------------------------------------------------
+# ----- Gaussian Mixture Model ---------------------
+# --------------------------------------------------
+
+library(mclust)
+library(irr)
+library(ggplot2)
+library(ggthemes)
+library(dplyr)
+library(knitr)
+
+BIC <- list()
+CAIC <- list()
+AWE <- list()
+for (i in 1:10) {
+  LL <- unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=i, modelNames="EEI")[[9]])
+  D <- unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=i, modelNames="EEI")[[10]])
+  N <- unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=i, modelNames="EEI")[[4]])
+  BIC[i] <- (-2*LL)+(D*log(N))
+  CAIC[i] <- (-2*LL)+(D*(log(N)+1))
+  AWE[i] <- (-2*LL) +(2*D*(log(N)+1.5))
+}
+IC <- data.frame(Profile=1:10, BIC=unlist(BIC), CAIC=unlist(CAIC), AWE=unlist(AWE))
+
+test <- data.frame(Profile=rep(seq(from=1, to=10), 3),
+                   Type=factor(rep(x=1:3, each=10), levels=1:3, labels=c("BIC", "CAIC", "AWE")),
+                   Criterion=matrix(c(unlist(BIC), unlist(CAIC), unlist(AWE)), ncol=1, byrow=TRUE))
+ggplot(test, aes(x=factor(Profile), y=Criterion, group=Type, color=Type)) +
+  geom_point() +
+  geom_line() +
+  labs(x="\nProfile", y="Penalised -2*Loglikelihood\n", color="Information\nCriterion")
+
+data.mclust3 <- mutate(data.hlq.nomiss, 
+                       Profile=unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]]))
+tabl.mclust3 <- data.frame(bind_rows(
+  aggregate(data.mclust3$hlq_hps, by=list(Category=data.mclust3$Profile), FUN=mean),
+  aggregate(data.mclust3$hlq_hsi, by=list(Category=data.mclust3$Profile), FUN=mean),
+  aggregate(data.mclust3$hlq_amh, by=list(Category=data.mclust3$Profile), FUN=mean),
+  aggregate(data.mclust3$hlq_ss, by=list(Category=data.mclust3$Profile), FUN=mean),
+  aggregate(data.mclust3$hlq_ca, by=list(Category=data.mclust3$Profile), FUN=mean),
+  aggregate(data.mclust3$hlq_ae, by=list(Category=data.mclust3$Profile), FUN=mean),
+  aggregate(data.mclust3$hlq_nhs, by=list(Category=data.mclust3$Profile), FUN=mean),
+  aggregate(data.mclust3$hlq_fhi, by=list(Category=data.mclust3$Profile), FUN=mean),
+  aggregate(data.mclust3$hlq_uhi, by=list(Category=data.mclust3$Profile), FUN=mean)
+))
+tabl.mclust3 <- mutate(tabl.mclust3,
+                       Scale=factor(rep(x=1:9, each=3), levels=1:9,
+                                    labels=c("HPS", "HSI", "AMH", "SS", "CA", "AE", "NHS", "FHI", "UHI")))
+colnames(tabl.mclust3) <- c("Profile", "Value", "Scale")
+
+ggplot(tabl.mclust3, aes(x=Scale, y=Value, group=factor(Profile), color=factor(Profile))) +
+  geom_point() +
+  geom_line() +
+  ylim(1, 5) +
+  labs(x="\nHealth Literacy Dimension", y="Score\n", color="Profile")
+
+tabl.mclust3
+table(data.mclust3$Profile)
+data.mclust <- list()
+Profile <- list()
+for (i in 1:7) {
+  Profile[i] <- unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=i, modelNames="EEI")[[14]])
+}
+unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]])
+
+dim(data.frame(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]]))
+
+data.qly <- data.frame(Profile=Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]],
+                       P1=Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[13]][,1],
+                       P2=Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[13]][,2],
+                       P3=Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[13]][,3])
+prop31 <- summary(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI"))[[10]][1]
+prop32 <- summary(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI"))[[10]][2]
+prop33 <- summary(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI"))[[10]][3]
+mcap31 <- table(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]])[1]/nrow(data.hlq.nomiss)
+mcap32 <- table(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]])[2]/nrow(data.hlq.nomiss)
+mcap33 <- table(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]])[3]/nrow(data.hlq.nomiss)
+avepp31 <- aggregate(data.qly$P1, by=list(Category=data.qly$Profile), FUN=mean)[,2]
+avepp32 <- aggregate(data.qly$P2, by=list(Category=data.qly$Profile), FUN=mean)[,2]
+avepp33 <- aggregate(data.qly$P3, by=list(Category=data.qly$Profile), FUN=mean)[,2]
+occ31 <- (avepp31[1]/(1-avepp31[1]))/(prop31/(1-prop31))
+occ32 <- (avepp32[2]/(1-avepp32[2]))/(prop32/(1-prop32))
+occ33 <- (avepp33[3]/(1-avepp33[3]))/(prop33/(1-prop33))
+
+class.tbl3 <- round(matrix(c(prop31, prop32, prop33,
+                             mcap31, mcap32, mcap33,
+                             avepp31[1], avepp32[2], avepp33[3],
+                             occ31, occ32, occ33),
+                             nrow=3, byrow=FALSE), 2)
+colnames(class.tbl3) <- c("meP", "mcaP", "AvePP", "OCC")
+rownames(class.tbl3) <- c("Profile 1", "Profile 2", "Profile 3")
+kable(class.tbl3)
