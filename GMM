@@ -14,12 +14,16 @@ for (i in 2:10) {print(sum(is.na(data.hlq.nomiss[i])))}
 # ----- Gaussian Mixture Model ---------------------
 # --------------------------------------------------
 
+# ----- Load Libraries -----------------------------
+
 library(mclust)
 library(irr)
 library(ggplot2)
 library(ggthemes)
 library(dplyr)
 library(knitr)
+
+# ----- Model Selection ----------------------------
 
 BIC <- list()
 CAIC <- list()
@@ -41,6 +45,8 @@ ggplot(test, aes(x=factor(Profile), y=Criterion, group=Type, color=Type)) +
   geom_point() +
   geom_line() +
   labs(x="\nProfile", y="Penalised -2*Loglikelihood\n", color="Information\nCriterion")
+
+# ----- Plot Selected Model ------------------------
 
 data.mclust3 <- mutate(data.hlq.nomiss, 
                        Profile=unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]]))
@@ -66,17 +72,8 @@ ggplot(tabl.mclust3, aes(x=Scale, y=Value, group=factor(Profile), color=factor(P
   ylim(1, 5) +
   labs(x="\nHealth Literacy Dimension", y="Score\n", color="Profile")
 
-tabl.mclust3
-table(data.mclust3$Profile)
-data.mclust <- list()
-Profile <- list()
-for (i in 1:7) {
-  Profile[i] <- unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=i, modelNames="EEI")[[14]])
-}
-unlist(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]])
-
-dim(data.frame(Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]]))
-
+# ----- Classification Quality ---------------------
+  
 data.qly <- data.frame(Profile=Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[14]],
                        P1=Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[13]][,1],
                        P2=Mclust(scale(data.hlq.nomiss[,2:10]), G=3, modelNames="EEI")[[13]][,2],
