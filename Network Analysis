@@ -1,0 +1,82 @@
+# --------------------------------------------------
+# - Load and Manipulate Data -----------------------
+# --------------------------------------------------
+
+library(memisc)
+
+setwd("...")
+data <- as.data.frame(as.data.set(spss.system.file(file="...")))
+data.hlqdims <- subset(data, select=c(hlq_hps, hlq_hsi, hlq_amh, hlq_ss, hlq_ca, hlq_ae, hlq_nhs, hlq_fhi, hlq_uhi))
+colnames(data.hlqdims) <- c("HPS", "HSI", "AMH", "SS", "CA", "AE", "NHS", "FHI", "UHI")
+
+
+# --------------------------------------------------
+# - Network Analysis -------------------------------
+# --------------------------------------------------
+
+library(bootnet)
+library(qgraph)
+library(igraph)
+
+# Plot Network
+
+network <- estimateNetwork(data.hlqdims, default="EBICglasso")
+graph <- qgraph(network[[1]], layout="spring", edge.color="black"); plot(graph)
+
+# Edge Weights
+
+edgelist <- data.frame(From=graph$Edgelist$from,
+                       To=graph$Edgelist$to,
+                       Weight=graph$Edgelist$weight)
+
+edgelist$From[edgelist$From == 1] <- "HPS"
+edgelist$From[edgelist$From == 2] <- "HSI"
+edgelist$From[edgelist$From == 3] <- "AMH"
+edgelist$From[edgelist$From == 4] <- "SS"
+edgelist$From[edgelist$From == 5] <- "CA"
+edgelist$From[edgelist$From == 6] <- "AE"
+edgelist$From[edgelist$From == 7] <- "NHS"
+edgelist$From[edgelist$From == 8] <- "FHI"
+edgelist$From[edgelist$From == 9] <- "UHI"
+
+edgelist$To[edgelist$To == 1] <- "HPS"
+edgelist$To[edgelist$To == 2] <- "HSI"
+edgelist$To[edgelist$To == 3] <- "AMH"
+edgelist$To[edgelist$To == 4] <- "SS"
+edgelist$To[edgelist$To == 5] <- "CA"
+edgelist$To[edgelist$To == 6] <- "AE"
+edgelist$To[edgelist$To == 7] <- "NHS"
+edgelist$To[edgelist$To == 8] <- "FHI"
+edgelist$To[edgelist$To == 9] <- "UHI"
+
+edgelist
+
+# Adjacency Matrix
+
+igraph <- as.igraph(graph)
+V(igraph)$name <- c("HPS", "HSI", "AMH", "SS", "CA", "AE", "NHS", "FHI", "UHI")
+adj.mat <- get.adjacency(igraph, attr="weight", names=TRUE)
+adj.mat
+
+# Bootstrapping
+
+set.seed(1234)
+
+boot.npar <- bootnet(network, nBoots=1000, nCores=8)
+boot.case <- bootnet(network, nBoots=1000, type="case", nCores=8)
+
+# Edge Stability
+
+plot.edge <- plot(boot.npar, labels=FALSE, order="sample"); plot.edge
+sum.boot.npar <- summary(boot.npar)
+sum.boot.npar; write.table(sum.boot.npar, "clipboard", sep="\t")
+
+# Centrality Measures
+
+centralityPlot(network)
+centralityTable(network, standardized=FALSE)
+centralityTable(network, standardized=TRUE)
+
+# Centrality Stability
+
+censtab <- corStability(boot.case)
