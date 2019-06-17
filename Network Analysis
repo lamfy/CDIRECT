@@ -1,5 +1,5 @@
 # --------------------------------------------------
-# - Load and Manipulate Data -----------------------
+# ----- Load and Manipulate Data -------------------
 # --------------------------------------------------
 
 library(memisc)
@@ -9,9 +9,8 @@ data <- as.data.frame(as.data.set(spss.system.file(file="...")))
 data.hlqdims <- subset(data, select=c(hlq_hps, hlq_hsi, hlq_amh, hlq_ss, hlq_ca, hlq_ae, hlq_nhs, hlq_fhi, hlq_uhi))
 colnames(data.hlqdims) <- c("HPS", "HSI", "AMH", "SS", "CA", "AE", "NHS", "FHI", "UHI")
 
-
 # --------------------------------------------------
-# - Network Analysis -------------------------------
+# ----- Network Analysis ---------------------------
 # --------------------------------------------------
 
 library(bootnet)
